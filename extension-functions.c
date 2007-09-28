@@ -20,14 +20,15 @@ Instructions:
    Linux:
      gcc -fPIC -shared extension-functions.c -o libsqlitefunctions.so
    Mac OS X:
-     gcc -dynamiclib extension-functions.c -o libsqlitefunctions.so
+     gcc -fno-common -dynamiclib extension-functions.c -o libsqlitefunctions.dylib
    (You may need to add flags
     -I /opt/local/include/ -L/opt/local/lib -lsqlite3
     if your sqlite3 is installed from Darwin ports, or
     -I /sw/include/ -L/sw/lib -lsqlite3
     if installed with Fink.)
 2) In your application, call sqlite3_enable_load_extension(db,1) to
-   allow loading external libraries.  Then load the library libsqlitefunctions.so.
+   allow loading external libraries.  Then load the library libsqlitefunctions
+   using sqlite3_load_extension; the third argument should be 0.
    See http://www.sqlite.org/cvstrac/wiki?p=LoadableExtensions.
 3) Use, for example:
    SELECT cos(radians(inclination)) FROM satsum WHERE satnum = 25544;
@@ -48,6 +49,10 @@ HAVE_TRIM #define.
 
 Liam Healy
 
+2007-09-28 Use sqlite3_extension_init and macros
+SQLITE_EXTENSION_INIT1, SQLITE_EXTENSION_INIT2, so that it works with
+sqlite3_load_extension.  Thanks to Eric Higashino and Joe Wilson.
+New instructions for Mac compilation.
 2007-09-17 With help from Joe Wilson and Nuno Luca, made use of
 external interfaces so that compilation is no longer dependent on
 SQLite source code.  Merged source, header, and README into a single
@@ -82,7 +87,9 @@ Original code 2006 June 05 by relicoder.
 
 //#if SQLITE_WITH_EXTRA_FUNCTIONS
 
-#include "sqlite3.h"
+#include "sqlite3ext.h"
+SQLITE_EXTENSION_INIT1
+
 #include <ctype.h>
 /* relicoder */
 #include <math.h>
@@ -1611,7 +1618,8 @@ static void differenceFunc(sqlite3_context *context, int argc, sqlite3_value **a
 ** functions.  This should be the only routine in this file with
 ** external linkage.
 */
-void sqlite3RegisterExtraFunctions(sqlite3 *db){
+int sqlite3_extension_init(sqlite3 *db, char **pzErrMsg, const sqlite3_api_routines *pApi){
+  SQLITE_EXTENSION_INIT2(pApi);
   static const struct FuncDef {
      char *zName;
      signed char nArg;
@@ -1737,6 +1745,7 @@ void sqlite3RegisterExtraFunctions(sqlite3 *db){
     }
 #endif
   }
+  return 0;
 }
 
 //#endif
@@ -1842,3 +1851,4 @@ void print_elem(void *e, int64_t c, void* p){
   int ee = *(int*)(e);
   printf("%d => %lld\n", ee,c);
 }
+
