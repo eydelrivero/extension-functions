@@ -33,22 +33,27 @@ Instructions:
 3) Use, for example:
    SELECT cos(radians(inclination)) FROM satsum WHERE satnum = 25544;
 
-Note: You cannot use these functions from the sqlite3 program, you must
-write your own program using the API, and call sqlite3_enable_load_extension.
-See "Security Considerations" in 
+Note: You cannot use these functions from the sqlite3 program, you
+must write your own program using the sqlite3 API, and call
+sqlite3_enable_load_extension.  See "Security Considerations" in
 http://www.sqlite.org/cvstrac/wiki?p=LoadableExtensions.
 
 Alterations:
 The instructions are for Linux or Mac OS X; users of other OSes may
 need to modify this procedure.  In particular, if your math library
-lacks one or more needed trig functions, comment out the appropriate
-HAVE_ #define at the top of func_ext.c.  If you are using a version of
-SQLite without the trim functions and replace, comment out the
-HAVE_TRIM #define.
-
+lacks one or more of the needed trig functions, comment out the
+appropriate HAVE_ #define at the top of func_ext.c.  If you do not
+wish to make a loadable module, comment out the define for
+COMPILE_SQLITE_EXTENSIONS_AS_LOADABLE_MODULE.  If you are using a
+version of SQLite without the trim functions and replace, comment out
+the HAVE_TRIM #define.
 
 Liam Healy
 
+History:
+2007-10-01 Minor clarification to instructions.
+2007-09-29 Compilation as loadable module is optional with
+COMPILE_SQLITE_EXTENSIONS_AS_LOADABLE_MODULE.
 2007-09-28 Use sqlite3_extension_init and macros
 SQLITE_EXTENSION_INIT1, SQLITE_EXTENSION_INIT2, so that it works with
 sqlite3_load_extension.  Thanks to Eric Higashino and Joe Wilson.
@@ -74,6 +79,7 @@ Original code 2006 June 05 by relicoder.
 
 //#include "config.h"
 
+#define COMPILE_SQLITE_EXTENSIONS_AS_LOADABLE_MODULE 1
 #define HAVE_ACOSH 1
 #define HAVE_ASINH 1
 #define HAVE_ATANH 1
@@ -85,10 +91,12 @@ Original code 2006 June 05 by relicoder.
 #define SQLITE_SOUNDEX 1
 #define HAVE_TRIM 1		/* LMH 2007-03-25 if sqlite has trim functions */
 
-//#if SQLITE_WITH_EXTRA_FUNCTIONS
-
+#ifdef COMPILE_SQLITE_EXTENSIONS_AS_LOADABLE_MODULE
 #include "sqlite3ext.h"
 SQLITE_EXTENSION_INIT1
+#else
+#include "sqlite3.h"
+#endif
 
 #include <ctype.h>
 /* relicoder */
@@ -1618,8 +1626,7 @@ static void differenceFunc(sqlite3_context *context, int argc, sqlite3_value **a
 ** functions.  This should be the only routine in this file with
 ** external linkage.
 */
-int sqlite3_extension_init(sqlite3 *db, char **pzErrMsg, const sqlite3_api_routines *pApi){
-  SQLITE_EXTENSION_INIT2(pApi);
+int RegisterExtensionFunctions(sqlite3 *db){
   static const struct FuncDef {
      char *zName;
      signed char nArg;
@@ -1748,7 +1755,14 @@ int sqlite3_extension_init(sqlite3 *db, char **pzErrMsg, const sqlite3_api_routi
   return 0;
 }
 
-//#endif
+#ifdef COMPILE_SQLITE_EXTENSIONS_AS_LOADABLE_MODULE
+int sqlite3_extension_init(
+    sqlite3 *db, char **pzErrMsg, const sqlite3_api_routines *pApi){
+  SQLITE_EXTENSION_INIT2(pApi);
+  RegisterExtensionFunctions(db);
+  return 0;
+}
+#endif /* COMPILE_SQLITE_EXTENSIONS_AS_LOADABLE_MODULE */
 
 map map_make(cmp_func cmp){
   map r;
