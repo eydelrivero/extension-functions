@@ -1,6 +1,7 @@
 /*
 This library will provide common mathematical and string functions in
-SQL queries.  It includes the following functions:
+SQL queries using the operating system math library.  It includes the
+following functions:
 
 Math: acos, asin, atan, atn2, atan2, acosh, asinh, atanh, difference,
 degrees, radians, cos, sin, tan, cot, cosh, sinh, tanh, coth, exp,
@@ -18,12 +19,12 @@ recent versions of SQLite and so by default do not build.
 Instructions:
 1) Compile with
    Linux:
-     gcc -fPIC -shared extension-functions.c -o libsqlitefunctions.so
+     gcc -fPIC -lm -shared extension-functions.c -o libsqlitefunctions.so
    Mac OS X:
      gcc -fno-common -dynamiclib extension-functions.c -o libsqlitefunctions.dylib
    (You may need to add flags
     -I /opt/local/include/ -L/opt/local/lib -lsqlite3
-    if your sqlite3 is installed from Darwin ports, or
+    if your sqlite3 is installed from Mac ports, or
     -I /sw/include/ -L/sw/lib -lsqlite3
     if installed with Fink.)
 2) In your application, call sqlite3_enable_load_extension(db,1) to
@@ -33,16 +34,25 @@ Instructions:
 3) Use, for example:
    SELECT cos(radians(inclination)) FROM satsum WHERE satnum = 25544;
 
-Note: You cannot use these functions from the sqlite3 program, you
-must write your own program using the sqlite3 API, and call
-sqlite3_enable_load_extension.  See "Security Considerations" in
+Note: Loading extensions is by default prohibited as a
+security measure; see "Security Considerations" in
 http://www.sqlite.org/cvstrac/wiki?p=LoadableExtensions.
+If the sqlite3 program and library are built this
+way, you cannot use these functions from the program, you 
+must write your own program using the sqlite3 API, and call
+sqlite3_enable_load_extension as described above.
+
+If the program is built so that loading extensions is permitted,
+the following will work:
+sqlite> SELECT load_extension('./libsqlitefunctions.so');
+sqlite> select cos(radians(45));
+0.707106781186548
 
 Alterations:
 The instructions are for Linux or Mac OS X; users of other OSes may
 need to modify this procedure.  In particular, if your math library
-lacks one or more of the needed trig functions, comment out the
-appropriate HAVE_ #define at the top of func_ext.c.  If you do not
+lacks one or more of the needed trig or log functions, comment out the
+appropriate HAVE_ #define at the top of file.  If you do not
 wish to make a loadable module, comment out the define for
 COMPILE_SQLITE_EXTENSIONS_AS_LOADABLE_MODULE.  If you are using a
 version of SQLite without the trim functions and replace, comment out
@@ -51,6 +61,8 @@ the HAVE_TRIM #define.
 Liam Healy
 
 History:
+2008-06-13 Change to instructions to indicate use of the math library
+and that program might work.
 2007-10-01 Minor clarification to instructions.
 2007-09-29 Compilation as loadable module is optional with
 COMPILE_SQLITE_EXTENSIONS_AS_LOADABLE_MODULE.
