@@ -669,6 +669,12 @@ static void replicateFunc(sqlite3_context *context, int argc, sqlite3_value **ar
     nTLen = nLen*iCount;
     z=sqlite3_malloc(nTLen+1);
     zo=sqlite3_malloc(nLen+1);
+    if (!z || !zo){
+      sqlite3_result_error_nomem(context);
+      if (z) sqlite3_free(z);
+      if (zo) sqlite3_free(zo);
+      return;
+    }
     strcpy((char*)zo, (char*)sqlite3_value_text(argv[0]));
 
     for(i=0; i<iCount; ++i){
@@ -706,6 +712,10 @@ static void properFunc(sqlite3_context *context, int argc, sqlite3_value **argv)
 
   z = sqlite3_value_text(argv[0]);
   zo = (unsigned char *)sqlite3StrDup((char *) z);
+  if (!zo) {
+    sqlite3_result_error_nomem(context);
+    return;
+  }
   zt = zo;
 
   while( (r = *(z++))!=0 ){
@@ -757,9 +767,17 @@ static void padlFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
     if( zl>=ilen ){
       /* string is longer than the requested pad length, return the same string (dup it) */
       zo = sqlite3StrDup(zi);
+      if (!zo){
+        sqlite3_result_error_nomem(context);
+        return;
+      }
       sqlite3_result_text(context, zo, -1, SQLITE_TRANSIENT);
     }else{
       zo = sqlite3_malloc(strlen(zi)+ilen-zl+1);
+      if (!zo){
+        sqlite3_result_error_nomem(context);
+        return;
+      }
       zt = zo;
       for(i=1; i+zl<=ilen; ++i){
         *(zt++)=' ';
@@ -803,10 +821,18 @@ static void padrFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
     if( zl>=ilen ){
       /* string is longer than the requested pad length, return the same string (dup it) */
       zo = sqlite3StrDup(zi);
+      if (!zo){
+        sqlite3_result_error_nomem(context);
+        return;
+      }
       sqlite3_result_text(context, zo, -1, SQLITE_TRANSIENT);
     }else{
       zll = strlen(zi);
       zo = sqlite3_malloc(zll+ilen-zl+1);
+      if (!zo){
+        sqlite3_result_error_nomem(context);
+        return;
+      }
       zt = strcpy(zo,zi)+zll;
       for(i=1; i+zl<=ilen; ++i){
         *(zt++) = ' ';
@@ -850,10 +876,18 @@ static void padcFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
     if( zl>=ilen ){
       /* string is longer than the requested pad length, return the same string (dup it) */
       zo = sqlite3StrDup(zi);
+      if (!zo){
+        sqlite3_result_error_nomem(context);
+        return;
+      }
       sqlite3_result_text(context, zo, -1, SQLITE_TRANSIENT);
     }else{
       zll = strlen(zi);
       zo = sqlite3_malloc(zll+ilen-zl+1);
+      if (!zo){
+        sqlite3_result_error_nomem(context);
+        return;
+      }
       zt = zo;
       for(i=1; 2*i+zl<=ilen; ++i){
         *(zt++) = ' ';
@@ -897,6 +931,10 @@ static void strfilterFunc(sqlite3_context *context, int argc, sqlite3_value **ar
     ** (possibly) some memory
     */
     zo = sqlite3_malloc(strlen(zi1)+1); 
+    if (!zo){
+      sqlite3_result_error_nomem(context);
+      return;
+    }
     zot = zo;
     z1 = zi1;
     while( (c1=sqliteCharVal((unsigned char *)z1))!=0 ){
@@ -1032,6 +1070,10 @@ static void leftFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
   cc=zt-z;
 
   rz = sqlite3_malloc(zt-z+1);
+  if (!rz){
+    sqlite3_result_error_nomem(context);
+    return;
+  }
   strncpy((char*) rz, (char*) z, zt-z);
   *(rz+cc) = '\0';
   sqlite3_result_text(context, (char*)rz, -1, SQLITE_TRANSIENT); 
@@ -1079,6 +1121,10 @@ static void rightFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
   }
 
   rz = sqlite3_malloc(ze-zt+1);
+  if (!rz){
+    sqlite3_result_error_nomem(context);
+    return;
+  }
   strcpy((char*) rz, (char*) (zt));
   sqlite3_result_text(context, (char*)rz, -1, SQLITE_TRANSIENT); 
   sqlite3_free(rz);
@@ -1266,6 +1312,10 @@ static void reverseFunc(sqlite3_context *context, int argc, sqlite3_value **argv
   z = (char *)sqlite3_value_text(argv[0]);
   l = strlen(z);
   rz = sqlite3_malloc(l+1);
+  if (!rz){
+    sqlite3_result_error_nomem(context);
+    return;
+  }
   rzt = rz+l;
   *(rzt--) = '\0';
 
