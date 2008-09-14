@@ -1,7 +1,7 @@
 /*
 This library will provide common mathematical and string functions in
-SQL queries using the operating system math library.  It includes the
-following functions:
+SQL queries using the operating system libraries or provided
+definitions.  It includes the following functions:
 
 Math: acos, asin, atan, atn2, atan2, acosh, asinh, atanh, difference,
 degrees, radians, cos, sin, tan, cot, cosh, sinh, tanh, coth, exp,
@@ -16,37 +16,40 @@ upper_quartile.
 The string functions ltrim, rtrim, trim, replace are included in
 recent versions of SQLite and so by default do not build.
 
-Instructions:
-1) Compile with
-   Linux:
-     gcc -fPIC -lm -shared extension-functions.c -o libsqlitefunctions.so
-   Mac OS X:
-     gcc -fno-common -dynamiclib extension-functions.c -o libsqlitefunctions.dylib
-   (You may need to add flags
-    -I /opt/local/include/ -L/opt/local/lib -lsqlite3
-    if your sqlite3 is installed from Mac ports, or
-    -I /sw/include/ -L/sw/lib -lsqlite3
-    if installed with Fink.)
-2) In your application, call sqlite3_enable_load_extension(db,1) to
-   allow loading external libraries.  Then load the library libsqlitefunctions
-   using sqlite3_load_extension; the third argument should be 0.
-   See http://www.sqlite.org/cvstrac/wiki?p=LoadableExtensions.
-3) Use, for example:
-   SELECT cos(radians(inclination)) FROM satsum WHERE satnum = 25544;
+Compilation instructions:
+ Compile this C source file into a dynamic library as follows:
+ Linux:
+   gcc -fPIC -lm -shared extension-functions.c -o libsqlitefunctions.so
+ Mac OS X:
+   gcc -fno-common -dynamiclib extension-functions.c -o libsqlitefunctions.dylib
+ (You may need to add flags
+  -I /opt/local/include/ -L/opt/local/lib -lsqlite3
+  if your sqlite3 is installed from Mac ports, or
+  -I /sw/include/ -L/sw/lib -lsqlite3
+  if installed with Fink.)
 
-Note: Loading extensions is by default prohibited as a
-security measure; see "Security Considerations" in
-http://www.sqlite.org/cvstrac/wiki?p=LoadableExtensions.
-If the sqlite3 program and library are built this
-way, you cannot use these functions from the program, you 
-must write your own program using the sqlite3 API, and call
-sqlite3_enable_load_extension as described above.
+Usage instructions for applications calling the sqlite3 API functions:
+  In your application, call sqlite3_enable_load_extension(db,1) to
+  allow loading external libraries.  Then load the library libsqlitefunctions
+  using sqlite3_load_extension; the third argument should be 0.
+  See http://www.sqlite.org/cvstrac/wiki?p=LoadableExtensions.
+  Select statements may now use these functions, as in
+  SELECT cos(radians(inclination)) FROM satsum WHERE satnum = 25544;
 
-If the program is built so that loading extensions is permitted,
-the following will work:
-sqlite> SELECT load_extension('./libsqlitefunctions.so');
-sqlite> select cos(radians(45));
-0.707106781186548
+Usage instructions for the sqlite3 program:
+  If the program is built so that loading extensions is permitted,
+  the following will work:
+   sqlite> SELECT load_extension('./libsqlitefunctions.so');
+   sqlite> select cos(radians(45));
+   0.707106781186548
+  Note: Loading extensions is by default prohibited as a
+  security measure; see "Security Considerations" in
+  http://www.sqlite.org/cvstrac/wiki?p=LoadableExtensions.
+  If the sqlite3 program and library are built this
+  way, you cannot use these functions from the program, you 
+  must write your own program using the sqlite3 API, and call
+  sqlite3_enable_load_extension as described above, or else
+  rebuilt the sqlite3 program to allow loadable extensions.
 
 Alterations:
 The instructions are for Linux or Mac OS X; users of other OSes may
@@ -61,6 +64,9 @@ the HAVE_TRIM #define.
 Liam Healy
 
 History:
+2008-09-14 Add check that memory was actually allocated after
+sqlite3_malloc or sqlite3StrDup, call sqlite3_result_error_nomem if
+not.  Thanks to Robert Simpson.
 2008-06-13 Change to instructions to indicate use of the math library
 and that program might work.
 2007-10-01 Minor clarification to instructions.
