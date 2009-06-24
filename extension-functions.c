@@ -64,6 +64,7 @@ the HAVE_TRIM #define.
 Liam Healy
 
 History:
+2009-06-24 Correct check for argc in properFunc
 2008-09-14 Add check that memory was actually allocated after
 sqlite3_malloc or sqlite3StrDup, call sqlite3_result_error_nomem if
 not.  Thanks to Robert Simpson.
@@ -710,7 +711,7 @@ static void properFunc(sqlite3_context *context, int argc, sqlite3_value **argv)
   char r;
   int c=1;
 
-  assert( argc!=1);
+  assert( argc==1);
   if( SQLITE_NULL==sqlite3_value_type(argv[0]) ){
     sqlite3_result_null(context);
     return;
