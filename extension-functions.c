@@ -18,15 +18,23 @@ recent versions of SQLite and so by default do not build.
 
 Compilation instructions:
  Compile this C source file into a dynamic library as follows:
- Linux:
+ * Linux:
    gcc -fPIC -lm -shared extension-functions.c -o libsqlitefunctions.so
- Mac OS X:
+ * Mac OS X:
    gcc -fno-common -dynamiclib extension-functions.c -o libsqlitefunctions.dylib
  (You may need to add flags
   -I /opt/local/include/ -L/opt/local/lib -lsqlite3
   if your sqlite3 is installed from Mac ports, or
   -I /sw/include/ -L/sw/lib -lsqlite3
   if installed with Fink.)
+ * Windows:
+  1. Install MinGW (http://www.mingw.org/) and you will get the gcc
+  (gnu compiler collection)
+  2. add the path to your path variable (isn't done during the
+   installation!)
+  3. compile:
+   gcc -shared -I "path" -o libsqlitefunctions.so extension-functions.c
+   (path = path of sqlite3ext.h; i.e. C:\programs\sqlite)
 
 Usage instructions for applications calling the sqlite3 API functions:
   In your application, call sqlite3_enable_load_extension(db,1) to
@@ -52,10 +60,10 @@ Usage instructions for the sqlite3 program:
   rebuilt the sqlite3 program to allow loadable extensions.
 
 Alterations:
-The instructions are for Linux or Mac OS X; users of other OSes may
-need to modify this procedure.  In particular, if your math library
-lacks one or more of the needed trig or log functions, comment out the
-appropriate HAVE_ #define at the top of file.  If you do not
+The instructions are for Linux, Mac OS X, and Windows; users of other
+OSes may need to modify this procedure.  In particular, if your math
+library lacks one or more of the needed trig or log functions, comment
+out the appropriate HAVE_ #define at the top of file.  If you do not
 wish to make a loadable module, comment out the define for
 COMPILE_SQLITE_EXTENSIONS_AS_LOADABLE_MODULE.  If you are using a
 version of SQLite without the trim functions and replace, comment out
@@ -64,7 +72,9 @@ the HAVE_TRIM #define.
 Liam Healy
 
 History:
-2009-06-24 Correct check for argc in properFunc
+2010-01-06 Correct check for argc in squareFunc, and add Windows
+compilation instructions.
+2009-06-24 Correct check for argc in properFunc.
 2008-09-14 Add check that memory was actually allocated after
 sqlite3_malloc or sqlite3StrDup, call sqlite3_result_error_nomem if
 not.  Thanks to Robert Simpson.
