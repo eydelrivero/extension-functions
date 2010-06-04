@@ -69,9 +69,20 @@ COMPILE_SQLITE_EXTENSIONS_AS_LOADABLE_MODULE.  If you are using a
 version of SQLite without the trim functions and replace, comment out
 the HAVE_TRIM #define.
 
+The appropriate place to send comments, patches, questions,
+suggestions etc.  is to post them on the sqlite mailing list; make
+sure "extension-functions" is somewhere in your subject line.  If you
+have a patch, please attach it as a separate file using diff -u
+format.  Please note that I have basically packaged up someone else's
+code; I am not an expert in it so it's unlikely I'll be able to answer
+questions about its nuances or how to extend it.  By posting to the
+list you *might* get an answer from someone who knows the answer to
+your question.
+
 Liam Healy
 
 History:
+2010-06-03 Patch from Seth Falcon to reduce compiler warnings.
 2010-01-06 Correct check for argc in squareFunc, and add Windows
 compilation instructions.
 2009-06-24 Correct check for argc in properFunc.
@@ -160,7 +171,6 @@ typedef struct node{
 typedef struct map{
   node *base;
   cmp_func cmp;
-  short free;
 } map;
 
 /*
@@ -616,7 +626,6 @@ static void signFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
 */
 static void ceilFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
   double rVal=0.0;
-  i64 iVal=0;
   assert( argc==1 );
   switch( sqlite3_value_type(argv[0]) ){
     case SQLITE_INTEGER: {
@@ -641,7 +650,6 @@ static void ceilFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
 */
 static void floorFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
   double rVal=0.0;
-  i64 iVal=0;
   assert( argc==1 );
   switch( sqlite3_value_type(argv[0]) ){
     case SQLITE_INTEGER: {
