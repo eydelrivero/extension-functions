@@ -1,7 +1,23 @@
 # extension-functions
 
-#### Changes
+## Changes
 Added new window function `medianw` which can be used as a window function. 
+
+## Build
+
+#### macOs
+```bash
+gcc -g -fPIC -dynamiclib extension-functions.c -o extension-functions.dylib
+cp extension-functions.dylib /usr/local/lib
+```
+
+#### Linux
+```bash
+gcc -g -fPIC -shared extension-functions.c -o extension-functions.so
+cp extension-functions.so /usr/lib  # you might need root permissions for this
+```
+
+## Test
 
 To tests, run this script:
 ```sql
@@ -52,4 +68,5 @@ Original `median` function is still available but can be easily replaced by the 
 sqlite3_create_window_function(db, "median", 1, SQLITE_UTF8, 0,
 ```
 
-__Original description__: Provide mathematical and string extension functions for SQL queries in SQLite using the loadable extensions mechanism. Math: acos, asin, atan, atn2, atan2, acosh, asinh, atanh, difference, degrees, radians, cos, sin, tan, cot, cosh, sinh, tanh, coth, exp, log, log10, power, sign, sqrt, square, ceil, floor, pi. String: replicate, charindex, leftstr, rightstr, ltrim, rtrim, trim, replace, reverse, proper, padl, padr, padc, strfilter. Aggregate: stdev, variance, mode, median, lower_quartile, upper_quartile.
+## Original description by Liam Healy
+Provide mathematical and string extension functions for SQL queries in SQLite using the loadable extensions mechanism. Math: acos, asin, atan, atn2, atan2, acosh, asinh, atanh, difference, degrees, radians, cos, sin, tan, cot, cosh, sinh, tanh, coth, exp, log, log10, power, sign, sqrt, square, ceil, floor, pi. String: replicate, charindex, leftstr, rightstr, ltrim, rtrim, trim, replace, reverse, proper, padl, padr, padc, strfilter. Aggregate: stdev, variance, mode, median, lower_quartile, upper_quartile.
