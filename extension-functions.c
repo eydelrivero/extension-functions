@@ -184,6 +184,11 @@ map map_make(cmp_func cmp);
 void map_insert(map *m, void *e);
 
 /*
+** deletes the element e from map m
+*/
+void map_delete(map *m, void *e);
+
+/*
 ** executes function iter over all elements in the map, in key increasing order
 */
 void map_iterate(map *m, map_iterator iter, void* p);
@@ -1551,6 +1556,85 @@ static void modeFinalize(sqlite3_context *context){
 }
 
 /*
+** called for each value removed during a calculation of mode or median (opposite of modeStep)
+*/
+static void modeInverse(sqlite3_context *context, int argc, sqlite3_value **argv){
+  ModeCtx *p;
+  i64 xi=0;
+  double xd=0.0;
+  i64 *iptr;
+  double *dptr;
+  int type;
+
+  assert( argc==1 );
+  type = sqlite3_value_numeric_type(argv[0]);
+
+  if( type == SQLITE_NULL)
+    return;
+  
+  //See https://www.sqlite.org/c3ref/aggregate_context.html
+  //p = sqlite3_aggregate_context(context, sizeof(*p));
+  p = (ModeCtx*) sqlite3_aggregate_context(context, 0);
+
+  --(p->cnt);
+
+  if( 0==p->is_double ){
+    xi = sqlite3_value_int64(argv[0]);
+    iptr = (i64*)calloc(1,sizeof(i64));
+    *iptr = xi;
+    map_delete(p->m, iptr);
+  }else{
+    xd = sqlite3_value_double(argv[0]);
+    dptr = (double*)calloc(1,sizeof(double));
+    *dptr = xd;
+    map_delete(p->m, dptr);
+  }
+}
+
+/*
+** auxiliary function for percentiles values
+*/
+static void _medianValue(sqlite3_context *context){
+  ModeCtx *p;
+  p = (ModeCtx*) sqlite3_aggregate_context(context, 0);
+
+  if( p && p->m ){
+
+    // Reset values to start new calculation
+    p->riM *= 0;
+    p->rdM *= 0;
+    // p->pcnt *= 0;  // No need to reset because it is set in the caller (medianFinalize)
+    p->mcnt *= 0;
+    p->mn *= 0;
+    p->done *= 0;
+
+    map_iterate(p->m, medianIterate, p);
+
+    if( 0==p->is_double ){
+      if( 1==p->mn )
+        sqlite3_result_int64(context, p->riM);
+      else
+        sqlite3_result_double(context, p->riM*1.0/p->mn);
+    }
+    else{
+      sqlite3_result_double(context, p->rdM/p->mn);
+    }
+  }
+}
+
+/*
+** Returns the median value
+*/
+static void medianValue(sqlite3_context *context){
+  ModeCtx *p;
+  p = (ModeCtx*) sqlite3_aggregate_context(context, 0);
+  if( p!=0 ){
+    p->pcnt = (p->cnt)/2.0;
+    _medianValue(context);
+  }
+}
+
+/*
 ** auxiliary function for percentiles
 */
 static void _medianFinalize(sqlite3_context *context){
@@ -1829,6 +1913,12 @@ int RegisterExtensionFunctions(sqlite3 *db){
     /* LMH no error checking */
     sqlite3_create_function(db, aAggs[i].zName, aAggs[i].nArg, SQLITE_UTF8, 
         pArg, 0, aAggs[i].xStep, aAggs[i].xFinalize);
+
+  /*
+  ** Register median() window aggregate with database handle db. 
+  */
+  sqlite3_create_window_function(db, "medianw", 1, SQLITE_UTF8, 0,
+    modeStep, medianFinalize, medianValue, modeInverse, 0);
 #if 0
     if( aAggs[i].needCollSeq ){
       struct FuncDefAgg *pFunc = sqlite3FindFunction( db, aAggs[i].zName,
@@ -1922,6 +2012,85 @@ void node_destroy(node *n){
 
 void map_destroy(map *m){
   node_destroy(m->base);
+}
+
+void node_delete(node** n, cmp_func cmp, void *e){
+  // base case 
+  if (*n == NULL)
+    return;
+
+  int c = cmp((*n)->data, e);
+
+  // If the key to be deleted is smaller than the root's key, 
+  // then it lies in left subtree
+  if(c > 0){
+    node_delete(&((*n)->l), cmp, e);
+  }
+
+  // If the key to be deleted is greater than the root's key, 
+  // then it lies in right subtree
+  else if (c < 0){
+    node_delete(&((*n)->r), cmp, e);
+  }
+
+  // if key is same as root's key, then This is the node 
+  // to be deleted 
+  else
+  {
+    if((*n)->count > 1){
+      (*n)->count--;
+      free(e);
+      return;
+    }
+    else if ((*n)->l == NULL) 
+    {
+        node* temp = (*n)->r;
+        
+        free(e);
+        free((*n)->data);
+        free(*n);
+
+        *n = temp;
+        return;
+    } 
+    else if ((*n)->r == NULL) 
+    {
+        node* temp = (*n)->l; 
+
+        free(e);
+        free((*n)->data);
+        free(*n);
+
+        *n = temp;   
+        return;
+    } 
+
+    // node with two children: Get the inorder successor (smallest in the right subtree)
+    node* successorParent = (*n)->r;
+    node* successor = (*n)->r;
+    /* loop down to find the leftmost leaf */
+    while (successor->l != NULL) {
+      successorParent = successor;
+      successor = successor->l;
+    }
+    if(successor == successorParent){ // the right child of the node to be deleted is a subree where every node is leaf or has only a right child
+      (*n)->r = successor->r;  // disconnect right child and connect to its right child, later we will copy successor's data
+    }
+    else{
+      successorParent->l = successor->r;
+    }
+
+    free((*n)->data);
+
+    (*n)->data = successor->data;
+    (*n)->count = successor->count;
+
+    free(successor);  // do not free successor->data as it was assigne to (*n)->data
+  }
+}
+
+void map_delete(map *m, void *e){
+  node_delete(&(m->base), m->cmp, e);
 }
 
 int int_cmp(const void *a, const void *b){
